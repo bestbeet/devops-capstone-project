@@ -1,52 +1,97 @@
----
-apiVersion: tekton.dev/v1beta1
-kind: Task
-metadata:
-  name: echo
-spec:
-  description: This task will echo the message.
-  params:
-    - name: message
-      description: The message to echo
-      type: string
-  steps:
-    - name: echo-message
-      image: alpine:3
-      command: [/bin/echo]
-      args: ["$(params.message)"]
----
-apiVersion: tekton.dev/v1beta1
+# Tasks for local k3d Tekton CD lab
+apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: cleanup
 spec:
-  description: This task will clean up a workspace by deleting all of the files.
   workspaces:
     - name: source
   steps:
-    - name: remove
-      image: alpine:3
-      env:
-        - name: WORKSPACE_SOURCE_PATH
-          value: $(workspaces.source.path)
+    - name: clear
+      image: alpine:3.20
       workingDir: $(workspaces.source.path)
-      securityContext:
-        runAsNonRoot: false
-        runAsUser: 0
       script: |
-        #!/usr/bin/env sh
+        #!/bin/sh
         set -eu
-        echo "Removing all files from ${WORKSPACE_SOURCE_PATH} ..."
-        # Delete any existing contents of the directory if it exists.
-        #
-        # We don't just "rm -rf ${WORKSPACE_SOURCE_PATH}" because ${WORKSPACE_SOURCE_PATH} might be "/"
-        # or the root of a mounted volume.
-        if [ -d "${WORKSPACE_SOURCE_PATH}" ] ; then
-          # Delete non-hidden files and directories
-          rm -rf "${WORKSPACE_SOURCE_PATH:?}"/*
-          # Delete files and directories starting with . but excluding ..
-          rm -rf "${WORKSPACE_SOURCE_PATH}"/.[!.]*
-          # Delete files and directories starting with .. plus any other character
-          rm -rf "${WORKSPACE_SOURCE_PATH}"/..?*
-        fi
-
+        find . -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: clone-source
+spec:
+  params:
+    - name: repo-url
+      type: string
+    - name: revision
+      type: string
+      default: main
+  workspaces:
+    - name: source
+  steps:
+    - name: clone
+      image: alpine/git:2.47.2
+      workingDir: $(workspaces.source.path)
+      args: ["clone", "--depth", "1", "--branch", "$(params.revision)", "$(params.repo-url)", "."]
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: lint-source
+spec:
+  workspaces:
+    - name: source
+  steps:
+    - name: lint
+      image: python:3.9-slim
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        set -eu
+        python -m pip install --no-cache-dir flake8==4.0.1
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: build-and-push
+spec:
+  params:
+    - name: image
+      type: string
+  workspaces:
+    - name: source
+  steps:
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:v1.23.2
+      command: ["/kaniko/executor"]
+      args:
+        - "--dockerfile=$(workspaces.source.path)/Dockerfile"
+        - "--context=$(workspaces.source.path)"
+        - "--destination=$(params.image)"
+        # For an explicitly trusted, HTTP-only local k3d lab registry.
+        - "--insecure"
+        - "--skip-tls-verify"
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: deploy-accounts
+spec:
+  params:
+    - name: image
+      type: string
+  workspaces:
+    - name: source
+  steps:
+    - name: deploy
+      image: registry.k8s.io/kubectl:v1.30.0
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        set -eu
+        kubectl apply -f deploy/kubernetes/accounts.yaml
+        kubectl set image deployment/accounts accounts="$(params.image)"
+        kubectl rollout status deployment/accounts --timeout=180s
+        kubectl get deployments,pods,replicasets,services
