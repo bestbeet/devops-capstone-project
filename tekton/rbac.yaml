@@ -1,0 +1,30 @@
+# Minimum local-lab RBAC to apply the Accounts and PostgreSQL manifests.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cd-runner
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cd-runner-role
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "deployments/status", "replicasets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["services", "pods"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cd-runner-binding
+subjects:
+  - kind: ServiceAccount
+    name: cd-runner
+    namespace: default
+roleRef:
+  kind: Role
+  name: cd-runner-role
+  apiGroup: rbac.authorization.k8s.io
