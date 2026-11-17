@@ -1,0 +1,47 @@
+$ nosetests -v --with-coverage --cover-package=service
+It should call the db-create command ... ok
+It should Create an account and add it to the database ... ok
+It should Create an Account and assert that it exists ... ok
+It should Delete an account from the database ... ok
+It should Deserialize an account ... ok
+It should not Deserialize an account with a KeyError ... ok
+It should not Deserialize an account with a TypeError ... ok
+It should Find an Account by name ... ok
+It should List all Accounts in the database ... ok
+It should Read an account ... ok
+It should Serialize an account ... ok
+It should Update an account ... ok
+It should not Create an Account when sending the wrong data ... ok
+It should permit the configured development origin. ... ok
+It should not grant an unknown origin. ... ok
+It should Create a new Account ... ok
+It should delete an existing account. ... ok
+It should return 204 for deleting a missing account. ... ok
+It should be healthy ... ok
+It should get 200_OK from the Home Page ... ok
+It should list all accounts. ... ok
+It should filter accounts by name. ... ok
+It should read a single account by id. ... ok
+It should return 404 for a missing account. ... ok
+It should include security headers. ... ok
+It should not Create an Account when sending the wrong media type ... ok
+It should update an existing account. ... ok
+It should return 404 for a missing account update. ... ok
+
+Name                               Stmts   Miss  Cover   Missing
+----------------------------------------------------------------
+service/__init__.py                   23      3    87%   42-45
+service/common/__init__.py             0      0   100%
+service/common/cli_commands.py         7      0   100%
+service/common/error_handlers.py      32      6    81%   46-48, 76-78
+service/common/log_handlers.py        10      1    90%   21
+service/common/status.py              46      0   100%
+service/config.py                     11      5    55%   12-16
+service/models.py                     69      3    96%   32, 98, 127
+service/routes.py                     53      0   100%
+----------------------------------------------------------------
+TOTAL                                251     18    93%
+----------------------------------------------------------------------
+Ran 28 tests in 0.757s
+
+OK
