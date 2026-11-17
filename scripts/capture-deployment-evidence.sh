@@ -8,7 +8,7 @@ echo "Checking local tools..."
 for tool in docker kubectl; do command -v "$tool" >/dev/null || { echo "Missing: $tool" >&2; exit 1; }; done
 
 echo "Capturing Docker images (Task 30)"
-docker images --format 'table {{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.CreatedSince}}\t{{.Size}}' | tee evidence/kube-images
+docker images --format 'table {{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.CreatedAt}}\t{{.Size}}' | tee evidence/kube-images
 
 echo "Capturing Kubernetes resources (Task 31)"
 kubectl get deployments,pods,replicasets,services -o wide | tee evidence/kube-deploy-accounts
