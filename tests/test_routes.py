@@ -177,7 +177,6 @@ class TestAccountService(TestCase):
         response = self.client.delete(f"{BASE_URL}/999999")
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-
     def test_security_headers(self):
         """It should include security headers."""
         response = self.client.get("/health")
