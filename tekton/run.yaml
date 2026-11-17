@@ -1,0 +1,19 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: cd-pipeline-run-
+spec:
+  pipelineRef:
+    name: cd-pipeline
+  serviceAccountName: cd-runner
+  params:
+    - name: repo-url
+      value: https://github.com/bestbeet/devops-capstone-project.git
+    - name: branch
+      value: main
+    - name: image
+      # Replace this with your in-cluster registry image address.
+      value: k3d-cluster-registry:5000/accounts:1.0
+  workspaces:
+    - name: pipeline-workspace
+      emptyDir: {}
