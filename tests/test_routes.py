@@ -177,3 +177,24 @@ class TestAccountService(TestCase):
         response = self.client.delete(f"{BASE_URL}/999999")
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
+
+    def test_security_headers(self):
+        """It should include security headers."""
+        response = self.client.get("/health")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.headers.get("X-Content-Type-Options"), "nosniff")
+        self.assertIn("Content-Security-Policy", response.headers)
+
+    def test_cors_allowed_origin(self):
+        """It should permit the configured development origin."""
+        response = self.client.get(BASE_URL, headers={"Origin": "http://localhost:3000"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.headers.get("Access-Control-Allow-Origin"),
+            "http://localhost:3000",
+        )
+
+    def test_cors_disallowed_origin(self):
+        """It should not grant an unknown origin."""
+        response = self.client.get(BASE_URL, headers={"Origin": "https://example.org"})
+        self.assertIsNone(response.headers.get("Access-Control-Allow-Origin"))
